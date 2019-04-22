@@ -4,7 +4,7 @@ from keras import models
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
+from keras.layers import Dense, Conv2D, Flatten, MaxPooling2D
 
 def plt_modle(model_hist):
     acc = model_hist.history['acc']
@@ -42,7 +42,7 @@ batch_size = 20
 t_steps = 3462/batch_size
 v_steps = 861/batch_size
 classes = 5
-flower_path = "C:/Users/User/PycharmProjects/flowers/flowers/flowers"
+flower_path = "C:/flowers/flowers"
 train_gen = train.flow_from_directory(flower_path, target_size = (img_size, img_size), batch_size = batch_size, class_mode='categorical', subset='training')
 valid_gen = train.flow_from_directory(flower_path, target_size = (img_size, img_size), batch_size = batch_size, class_mode = 'categorical', subset='validation')
 
@@ -62,6 +62,7 @@ model = models.Sequential()
 #add model layers
 
 model.add(Conv2D(64, kernel_size=3, activation='relu',input_shape=((128,128,3))))
+model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
 model.add(Conv2D(32, kernel_size=3, activation='relu'))
 model.add(Flatten())
 
