@@ -1,77 +1,81 @@
 import numpy
 
-import keras
-from keras import layers
-from keras import models
 from keras.preprocessing import image
-from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
-import matplotlib.pyplot as plt
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten, MaxPooling2D
 from keras.models import load_model
 import os
+from keras import models
+from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+from keras.models import Model
+from keras.layers import Dense
+from keras.applications.inception_v3 import InceptionV3
 
-# def plt_modle(model_hist):
-#     acc = model_hist.history['acc']
-#     val_acc = model_hist.history['val_acc']
-#     loss = model_hist.history['loss']
-#     val_loss = model_hist.history['val_loss']
-#
-#     epochs = range(1, len(acc) + 1)
-#
-#     plt.figure(figsize=(15, 6));
-#     plt.subplot(1, 2, 1)
-#     plt.plot(epochs, acc, color='#0984e3', marker='o', linestyle='none', label='Training Accuracy')
-#     plt.plot(epochs, val_acc, color='#0984e3', label='Validation Accuracy')
-#     plt.title('Training and Validation Accuracy')
-#     plt.legend(loc='best')
-#     plt.xlabel('Epochs')
-#     plt.ylabel('Accuracy')
-#
-#     plt.subplot(1, 2, 2)
-#     plt.plot(epochs, loss, color='#eb4d4b', marker='o', linestyle='none', label='Training Loss')
-#     plt.plot(epochs, val_loss, color='#eb4d4b', label='Validation Loss')
-#     plt.title('Training and Validation Loss')
-#     plt.legend(loc='best')
-#     plt.xlabel('Epochs')
-#     plt.ylabel('Loss')
-#
-#     plt.show()
-#
-# # Split images into Training and Validation Sets (20%)
-#
-# train = ImageDataGenerator(rescale=1./255,horizontal_flip=True, shear_range=0.2, zoom_range=0.2,width_shift_range=0.2,height_shift_range=0.2, fill_mode='nearest', validation_split=0.2)
-#
-# img_size = 128
-# batch_size = 20
-# t_steps = 3462/batch_size
-# v_steps = 861/batch_size
+
+def plt_modle(model_hist):
+    acc = model_hist.history['acc']
+    val_acc = model_hist.history['val_acc']
+    loss = model_hist.history['loss']
+    val_loss = model_hist.history['val_loss']
+
+    epochs = range(1, len(acc) + 1)
+
+    plt.figure(figsize=(15, 6));
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs, acc, color='#0984e3', marker='o', linestyle='none', label='Training Accuracy')
+    plt.plot(epochs, val_acc, color='#0984e3', label='Validation Accuracy')
+    plt.title('Training and Validation Accuracy')
+    plt.legend(loc='best')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs, loss, color='#eb4d4b', marker='o', linestyle='none', label='Training Loss')
+    plt.plot(epochs, val_loss, color='#eb4d4b', label='Validation Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend(loc='best')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+
+    plt.show()
+
+# Split images into Training and Validation Sets (20%)
+
+train = ImageDataGenerator(rescale=1./255,horizontal_flip=True, shear_range=0.2, zoom_range=0.2,width_shift_range=0.2,height_shift_range=0.2, fill_mode='nearest', validation_split=0.2)
+
+img_size = 299
+batch_size = 20
+t_steps = 3462/batch_size
+v_steps = 861/batch_size
 classes = 5
-# flower_path = "C:/Users/User/PycharmProjects/flowers/flowers/flowers"
-# train_gen = train.flow_from_directory(flower_path, target_size = (img_size, img_size), batch_size = batch_size, class_mode='categorical', subset='training')
-# valid_gen = train.flow_from_directory(flower_path, target_size = (img_size, img_size), batch_size = batch_size, class_mode = 'categorical', subset='validation')
+flower_path = "C:/flowers/flowers"
+train_gen = train.flow_from_directory(flower_path, target_size = (img_size, img_size), batch_size = batch_size, class_mode='categorical', subset='training')
+valid_gen = train.flow_from_directory(flower_path, target_size = (img_size, img_size), batch_size = batch_size, class_mode = 'categorical', subset='validation')
+
+# Model
+
+model = models.Sequential()
+
+#Load IncpetionV3 with imagenet weights.
+original_model = InceptionV3()#MobileNet(input_shape=None, alpha=1.0, depth_multiplier=1, dropout=1e-3, include_top=True, weights='imagenet', input_tensor=None, pooling=None, classes=1000)
+bottlenecks_input = original_model.get_layer(index=0).input
+bottlenecks_output = original_model.get_layer(index=-2).output
+bottleneck_model = Model(inputs=bottlenecks_input, outputs=bottlenecks_output)
+
+#freeze InceptionV3 layers
+for layer in bottleneck_model.layers:
+    layer.trainable = False
+
+model.add(bottleneck_model)
+
+#Add a dense layer as the new classifier
+model.add(Dense(classes, activation='softmax', input_dim=2048))# use model.add() to add any layers you like
+# read Keras documentation to find which layers you can use:
+#           https://keras.io/layers/core/
+#           https://keras.io/layers/convolutional/
+#           https://keras.io/layers/pooling/
 #
-# # Model
-#
-# model = models.Sequential()
-#
-#
-#
-# # use model.add() to add any layers you like
-# # read Keras documentation to find which layers you can use:
-# #           https://keras.io/layers/core/
-# #           https://keras.io/layers/convolutional/
-# #           https://keras.io/layers/pooling/
-# #
-#
-# #add model layers
-#
-# model.add(Conv2D(16, kernel_size=3, activation='relu',input_shape=((128,128,3))))
-# model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
-# model.add(Conv2D(32, kernel_size=5, activation='relu'))
-# model.add(MaxPooling2D(pool_size=(2, 2),strides=(2, 2)))
-# model.add(Flatten())
-# model.add(layers.Dense(128, activation='relu'))
+
+
 #
 #
 # # last layer should be with softmax activation function - do not change!!!
@@ -79,17 +83,17 @@ classes = 5
 #
 # # fill optimizer argument using one of keras.optimizers.
 # # read Keras documentation : https://keras.io/models/model/
-# optimizer ='adam'
+optimizer ='rmsprop'
 #
 # # fill loss argument using keras.losses.
 # # reads Keras documentation https://keras.io/losses/
-# loss ='categorical_crossentropy'
-# model.compile(loss= loss ,optimizer=optimizer ,metrics=['accuracy'])
+loss ='categorical_crossentropy'
+model.compile(loss= loss ,optimizer=optimizer ,metrics=['accuracy'])
 #
 # # you can change number of epochs by changing the value of the 'epochs' paramter
-# model_hist = model.fit_generator(train_gen, steps_per_epoch=t_steps, epochs= 30 , validation_data=valid_gen, validation_steps=v_steps)
-# model.save('flowers_model.h5')
-# plt_modle(model_hist)
+model_hist = model.fit_generator(train_gen, steps_per_epoch=t_steps, epochs= 8 , validation_data=valid_gen, validation_steps=v_steps)
+model.save('flowers_model.h5')
+plt_modle(model_hist)
 
 
 def load_trained_model(old_model):  #gets H5 file to load
@@ -100,7 +104,7 @@ def predict(model,path):
     names = []
     for r, d, f in os.walk(path):
         for file in f:
-            img = image.load_img(os.path.join(r, file), target_size=(128, 128, 3), grayscale=False)
+            img = image.load_img(os.path.join(r, file), target_size=(img_size, img_size, 3), grayscale=False)
             img = image.img_to_array(img)
             img = img / 255
             test_image.append(img)
@@ -122,6 +126,3 @@ def createFinalFile(imageNames, classifications):
 
         file.close()
 
-model = load_trained_model('flowers_model.h5')
-predict(model,"C:/Users/User/PycharmProjects/flowers/flowers/shit")
-#model.predict_classes()
